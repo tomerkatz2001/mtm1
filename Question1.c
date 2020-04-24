@@ -82,5 +82,5 @@ ErrorCode addToSortedList(Node list, Node toAdd){
         temp=current->next;
         current->next=newNode;
         newNode->next=temp;
-        return SUCCESS
+        return SUCCESS;
 }
