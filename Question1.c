@@ -1,3 +1,6 @@
+#include <stdbool.h>
+#include <stdlib.h>
+
 typedef struct node_t {
 int x;
 struct node_t *next;
@@ -70,7 +73,10 @@ ErrorCode addToSortedList(Node list, Node toAdd){
             }
         }
         newNode=malloc(sizeof(Node));
-        if(newNode==NULL){return MEMORY_ERROR;}
+        if(newNode==NULL)
+        {
+            return MEMORY_ERROR;
+        }
         newNode->x=toAdd->x;
         newNode->next=toAdd->next;
         temp=current->next;
