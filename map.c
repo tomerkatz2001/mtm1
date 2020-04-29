@@ -8,17 +8,21 @@ struct Map_t{
     int last;
     int iterator;
 };
-
+/* this function allocates place in the memory for the wanted input 
+and after that copys the input data into the new place that was allocated*/
 static char* makePlaceAndCopy(const char* input)
 {
     assert(input!=NULL);
     int input_size=strlen(input);
     char* copied_input_addres=malloc(sizeof((*copied_input_addres))+1);
-    if(copied_input_addres==NULL)
+    if(copied_input_addres==NULL){
         return NULL; 
+    }    
     memcpy(copied_input_addres,input,input_size+1);
     return copied_input_addres;
 }
+/*this function find a given key is the map and returns its index in the array
+NOTE! YOU NEED TO GIVE THIS FUNCTION ONLY KEYS THAT YOU KNOW THAT ARE IN THE MAP! */
 static int findKeyIndex(Map map,const char* key)
 {
     assert(mapContains(map,key));
@@ -47,8 +51,9 @@ Map mapCreate()
 
 void mapDestroy(Map map)
 {
-    if(map==NULL)
+    if(map==NULL){
     return;
+    }
 
     for(int i=0;i<=map->last;i++)
     {
@@ -78,13 +83,11 @@ Map mapCopy(Map map)
 
 int mapGetSize(Map map)
 {
-    if (map==NULL)
+    if (map==NULL){
         return -1;
-    
-    else 
+    }else{ 
         return map->last +1;
-
-    
+    }      
 }
 
 
@@ -108,21 +111,29 @@ MapResult mapPut(Map map, const char* key, const char* data)
     {
         if(map->last>=map->length)// if the array is full. this adds more cells to the array
         {
-            map->keys=realloc(map->keys,sizeof(char*)*(map->length)*2);
-            if(map->keys==NULL)
-            return MAP_OUT_OF_MEMORY;
-            map->values=realloc(map->values,sizeof(char*)*(map->length)*2);
-            if(map->values==NULL)
+            char** newkeys;
+            newkeys=realloc(map->keys,sizeof(char*)*(map->length)*2);
+            if(newkeys==NULL){
                 return MAP_OUT_OF_MEMORY;
+            }
+            map->keys=newkeys;
+            char** newvalues;
+            newvalues=realloc(map->values,sizeof(char*)*(map->length)*2);
+            if(newvalues==NULL){
+                return MAP_OUT_OF_MEMORY;
+            }
+            map->values=newvalues;
             map->length=(map->length)*2;//updateing the current array size    
         }
         char* coppied_key=makePlaceAndCopy(key);
-        if (coppied_key==NULL)
+        if (coppied_key==NULL){
             return MAP_OUT_OF_MEMORY;
+        }    
         map->keys[++map->last]=coppied_key;
         char* coppied_value= makePlaceAndCopy(data);
-        if(coppied_value==NULL)
+        if(coppied_value==NULL){
             return MAP_OUT_OF_MEMORY;
+        }    
         map->values[map->last]=coppied_value;
     } 
     else
@@ -130,8 +141,9 @@ MapResult mapPut(Map map, const char* key, const char* data)
         int need_to_replace=findKeyIndex(map,key);
         free(map->values[need_to_replace]); //free the old data 
         char* coppied_value=makePlaceAndCopy(data);
-        if(coppied_value==NULL)
+        if(coppied_value==NULL){
             return MAP_OUT_OF_MEMORY;
+        }    
         map->values[need_to_replace]=coppied_value;//place new data
     }
     return MAP_SUCCESS;
