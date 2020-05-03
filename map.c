@@ -98,8 +98,8 @@ Map mapCopy(Map map)
     copy->keys=malloc(sizeof(char*)*map->length);
     copy->values=malloc(sizeof(char*)*map->length);
     for(int i=0; i<=map->last;i++){
-        copy->keys[i]=malloc(sizeof(map->keys[i]));
-        copy->values[i]=malloc(sizeof(map->values[i]));
+        copy->keys[i]=malloc(strlen(map->keys[i])+1);
+        copy->values[i]=malloc(strlen(map->values[i])+1);
         strcpy(copy->keys[i],map->keys[i]);
         strcpy(copy->values[i],map->values[i]);
     }
@@ -251,7 +251,6 @@ char* mapGetNext(Map map)
     }
     map->iterator++;
     return map->keys[map->iterator];
-
 }
  
 MapResult mapClear(Map map){
@@ -270,5 +269,3 @@ MapResult mapClear(Map map){
     map->last=0;
     return MAP_SUCCESS;
 }
-
-
