@@ -1,11 +1,12 @@
 #include "map.h"
 #include <stdlib.h>
 #include <assert.h>
+#include<string.h>
 struct Map_t{
     char** keys;
     char** values;
     int length;
-    int last;
+    int last; //where can you write the next data
     int iterator;
 };
 /* this function allocates place in the memory for the wanted input 
@@ -14,7 +15,7 @@ static char* makePlaceAndCopy(const char* input)
 {
     assert(input!=NULL);
     int input_size=strlen(input);
-    char* copied_input_addres=malloc(sizeof((*copied_input_addres))+1);
+    char* copied_input_addres=malloc(input_size+1);
     if(copied_input_addres==NULL){
         return NULL; 
     }    
@@ -28,7 +29,11 @@ static int findKeyIndex(Map map,const char* key)
     assert(mapContains(map,key));
     for (int i=0;i<=map->last;i++)
     {
-        if(!strcmp(map->keys[i],key))
+        if(map->keys[i]==NULL)
+        {
+            continue;
+        }
+        if(strcmp(map->keys[i],key)==0)
         {
             return i;
         }
@@ -39,10 +44,29 @@ static int findKeyIndex(Map map,const char* key)
 
 Map mapCreate()
 {
-    Map map= malloc(sizeof(Map));
-    map->keys= malloc(sizeof(char*)*LENGTH);
-    map->values=malloc(sizeof(char*)*LENGTH);
+    Map map= malloc(sizeof(*map));
+    if(map==NULL)
+    {
+        return NULL;
+    }
     map->length=LENGTH;
+    map->keys= malloc(sizeof(char*)*LENGTH);
+    if(map->keys==NULL)
+    {
+		free(map);
+        return NULL;
+    }
+    map->values=malloc(sizeof(char*)*LENGTH);
+    if(map->values==NULL)
+    {
+        mapDestroy(map);
+        return NULL;
+    }
+    for(int i=0;i<map->length;i++)
+    {
+        map->keys[i]=NULL;
+        map->values[i]=NULL;
+    }
     map->last=0;
     map->iterator=0;
     return map;
@@ -51,16 +75,20 @@ Map mapCreate()
 
 void mapDestroy(Map map)
 {
+    
     if(map==NULL){
     return;
     }
-
     for(int i=0;i<=map->last;i++)
     {
         free(map->keys[i]);
         free(map->values[i]);
     }
+    free(map->keys);
+    free(map->values);
     free(map);
+    
+
 }
 
 
@@ -78,6 +106,7 @@ Map mapCopy(Map map)
     copy->length=map->length;
     copy->last=map->last;
     copy->iterator=map->iterator;
+    return map;
 }
 
 
@@ -86,14 +115,23 @@ int mapGetSize(Map map)
     if (map==NULL){
         return -1;
     }else{ 
-        return map->last +1;
+        return map->last;
     }      
 }
 
 
 bool mapContains(Map map, const char* key)
 {
+    if(map==NULL||key==NULL)
+    {
+        return false;
+    }
     for(int i=0; i<=map->last;i++){
+        if(map->keys[i]==NULL)
+        {
+            continue;
+        }
+        
         if(strcmp(map->keys[i],key)==0){
             return true;
         }
@@ -129,12 +167,12 @@ MapResult mapPut(Map map, const char* key, const char* data)
         if (coppied_key==NULL){
             return MAP_OUT_OF_MEMORY;
         }    
-        map->keys[++map->last]=coppied_key;
+        map->keys[map->last]=coppied_key;
         char* coppied_value= makePlaceAndCopy(data);
         if(coppied_value==NULL){
             return MAP_OUT_OF_MEMORY;
         }    
-        map->values[map->last]=coppied_value;
+        map->values[map->last++]=coppied_value;
     } 
     else
     {
@@ -155,7 +193,7 @@ char* mapGet(Map map, const char* key){
         return NULL;
     }
     int index=-1;
-    for(int i=0; i<=map->last;i++){
+    for(int i=0; i<map->last;i++){
         if(strcmp(map->keys[i],key)==0){
             index=i;
         }
@@ -185,16 +223,17 @@ MapResult mapRemove(Map map, const char* key)
         map->keys[i-1]=map->keys[i];
         map->values[i-1]=map->values[i];
     }
-    free(map->keys[map->last]);
-    free(map->values[map->last]);
+    free(map->keys[map->last-1]);
+    free(map->values[map->last-1]);
     map->last--;
+    return MAP_SUCCESS;
 }
 
 char* mapGetFirst(Map map){
     if(map==NULL){
         return NULL;
     }
-    if(map->keys[0]==NULL){
+    if(map->last==0){
         return NULL;
     }
      map->iterator=0;
@@ -231,4 +270,5 @@ MapResult mapClear(Map map){
     map->last=0;
     return MAP_SUCCESS;
 }
+
 
