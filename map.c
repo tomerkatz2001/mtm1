@@ -1,11 +1,12 @@
 #include "map.h"
 #include <stdlib.h>
 #include <assert.h>
+#include<string.h>
 struct Map_t{
     char** keys;
     char** values;
     int length;
-    int last;
+    int last; //where can you write the next data
     int iterator;
 };
 /* this function allocates place in the memory for the wanted input 
@@ -14,7 +15,7 @@ static char* makePlaceAndCopy(const char* input)
 {
     assert(input!=NULL);
     int input_size=strlen(input);
-    char* copied_input_addres=malloc(sizeof((*copied_input_addres))+1);
+    char* copied_input_addres=malloc(input_size+1);
     if(copied_input_addres==NULL){
         return NULL; 
     }    
@@ -28,7 +29,11 @@ static int findKeyIndex(Map map,const char* key)
     assert(mapContains(map,key));
     for (int i=0;i<=map->last;i++)
     {
-        if(!strcmp(map->keys[i],key))
+        if(map->keys[i]==NULL)
+        {
+            continue;
+        }
+        if(strcmp(map->keys[i],key)==0)
         {
             return i;
         }
@@ -39,10 +44,29 @@ static int findKeyIndex(Map map,const char* key)
 
 Map mapCreate()
 {
-    Map map= malloc(sizeof(Map));
-    map->keys= malloc(sizeof(char*)*LENGTH);
-    map->values=malloc(sizeof(char*)*LENGTH);
+    Map map= malloc(sizeof(*map));
+    if(map==NULL)
+    {
+        return NULL;
+    }
     map->length=LENGTH;
+    map->keys= malloc(sizeof(char*)*LENGTH);
+    if(map->keys==NULL)
+    {
+		free(map);
+        return NULL;
+    }
+    map->values=malloc(sizeof(char*)*LENGTH);
+    if(map->values==NULL)
+    {
+        mapDestroy(map);
+        return NULL;
+    }
+    for(int i=0;i<map->length;i++)//put NULL in the new ampty cells
+    {
+        map->keys[i]=NULL;
+        map->values[i]=NULL;
+    }
     map->last=0;
     map->iterator=0;
     return map;
@@ -51,33 +75,43 @@ Map mapCreate()
 
 void mapDestroy(Map map)
 {
+    
     if(map==NULL){
     return;
     }
-
-    for(int i=0;i<=map->last;i++)
+    for(int i=0;i<map->last;i++)
     {
         free(map->keys[i]);
         free(map->values[i]);
     }
+    free(map->keys);
+    free(map->values);
     free(map);
+    
+
 }
 
 
 Map mapCopy(Map map)
 {
-    Map copy= malloc(sizeof(Map));
-    copy->keys=malloc(sizeof(char*)*map->length);
-    copy->values=malloc(sizeof(char*)*map->length);
-    for(int i=0; i<=map->last;i++){
-        copy->keys[i]=malloc(sizeof(map->keys[i]));
-        copy->values[i]=malloc(sizeof(map->values[i]));
-        strcpy(copy->keys[i],map->keys[i]);
-        strcpy(copy->values[i],map->values[i]);
+    if(map==NULL)
+    {
+        return NULL;
     }
-    copy->length=map->length;
-    copy->last=map->last;
-    copy->iterator=map->iterator;
+    Map copy=mapCreate();
+    if(copy==NULL)
+    {
+        return NULL;
+    }
+    for(int i=0;i<map->last;i++)
+    {
+        if(mapPut(copy,map->keys[i],map->values[i])==MAP_OUT_OF_MEMORY)
+        {
+            return NULL;
+        }
+
+    }
+    return copy;
 }
 
 
@@ -86,15 +120,23 @@ int mapGetSize(Map map)
     if (map==NULL){
         return -1;
     }else{ 
-        return map->last +1;
+        return map->last;
     }      
 }
 
 
 bool mapContains(Map map, const char* key)
 {
-    for(int i=0; i<=map->last;i++){
-        if(strcmp(map->keys[i],key)==0){
+    if(map==NULL||key==NULL)
+    {
+        return false;
+    }
+    for(int i=0; i<map->last;i++){
+        if(map->keys[i]==NULL)
+        {
+            continue;
+        }
+        if(!strcmp(map->keys[i],key)){
             return true;
         }
     }
@@ -111,30 +153,34 @@ MapResult mapPut(Map map, const char* key, const char* data)
     {
         if(map->last>=map->length)// if the array is full. this adds more cells to the array
         {
-            char** newkeys;
-            newkeys=realloc(map->keys,sizeof(char*)*(map->length)*2);
+            char** newkeys=realloc(map->keys,sizeof(char*)*(map->length)*2);
             if(newkeys==NULL){
                 return MAP_OUT_OF_MEMORY;
             }
             map->keys=newkeys;
-            char** newvalues;
-            newvalues=realloc(map->values,sizeof(char*)*(map->length)*2);
+            char** newvalues=realloc(map->values,sizeof(char*)*(map->length)*2);
             if(newvalues==NULL){
                 return MAP_OUT_OF_MEMORY;
             }
             map->values=newvalues;
-            map->length=(map->length)*2;//updateing the current array size    
+            for(int i=map->last;i<(map->last)*2;i++)// putting NULL in the new empy cells
+            {
+                map->keys[i]=NULL;
+                map->values[i]=NULL;
+            }
+            map->length=(map->length)*2;//updateing the current array size  
+              
         }
         char* coppied_key=makePlaceAndCopy(key);
         if (coppied_key==NULL){
             return MAP_OUT_OF_MEMORY;
         }    
-        map->keys[++map->last]=coppied_key;
+        map->keys[map->last]=coppied_key;
         char* coppied_value= makePlaceAndCopy(data);
         if(coppied_value==NULL){
             return MAP_OUT_OF_MEMORY;
         }    
-        map->values[map->last]=coppied_value;
+        map->values[map->last++]=coppied_value;
     } 
     else
     {
@@ -151,18 +197,15 @@ MapResult mapPut(Map map, const char* key, const char* data)
 
 
 char* mapGet(Map map, const char* key){
-    if(key==NULL){
+    if(key==NULL||map==NULL){
         return NULL;
     }
-    int index=-1;
-    for(int i=0; i<=map->last;i++){
-        if(strcmp(map->keys[i],key)==0){
-            index=i;
-        }
-    }
-    if(index<0){
+    if(!mapContains(map,key))
+    {
         return NULL;
-    }else{
+    }
+    else{
+        int index=findKeyIndex(map,key);
         return map->values[index];
     }
 }
@@ -180,25 +223,27 @@ MapResult mapRemove(Map map, const char* key)
     int index=findKeyIndex(map,key);
     free(map->values[index]);
     free(map->keys[index]);
-    for(int i=index+1;i<=map->last;i++)
+    while(index<map->last-1)
     {
-        map->keys[i-1]=map->keys[i];
-        map->values[i-1]=map->values[i];
+        map->keys[index]=map->keys[index+1];
+        map->values[index]=map->values[index+1];
+        index=index+1;;
     }
-    free(map->keys[map->last]);
-    free(map->values[map->last]);
-    map->last--;
+    map->keys[map->last-1]=NULL;
+    map->values[map->last-1]=NULL;
+    map->last=map->last-1;
+    return MAP_SUCCESS;
 }
 
 char* mapGetFirst(Map map){
     if(map==NULL){
         return NULL;
     }
-    if(map->keys[0]==NULL){
+    if(map->last==0){
         return NULL;
     }
      map->iterator=0;
-     return map->values[0];
+     return map->keys[0];
 }
 char* mapGetNext(Map map)
 {
@@ -212,7 +257,6 @@ char* mapGetNext(Map map)
     }
     map->iterator++;
     return map->keys[map->iterator];
-
 }
  
 MapResult mapClear(Map map){
@@ -220,15 +264,13 @@ MapResult mapClear(Map map){
         return MAP_NULL_ARGUMENT;
     }
     
-    for(int i=0; i<=map->last;i++){
+    for(int i=0; i<map->last;i++){
         free(map->keys[i]);
+        map->keys[i]=NULL;
         free(map->values[i]);
+        map->values[i]=NULL;
     }
-    map->keys=realloc(map->keys,sizeof(char*)*LENGTH);
-    map->values=realloc(map->values,sizeof(char*)*LENGTH);
-    map->length=LENGTH;
     map->iterator=0;
     map->last=0;
     return MAP_SUCCESS;
 }
-
