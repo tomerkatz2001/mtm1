@@ -1,3 +1,4 @@
+#define LENGTH
 #include "map.h"
 #include <stdlib.h>
 #include <assert.h>
