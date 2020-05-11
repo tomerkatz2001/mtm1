@@ -103,6 +103,7 @@ Election electionCreate()
         CHECKMALLOC(election->votes[i]);
     }
     election->area_ids=malloc(sizeof(*election->area_ids)*LENGTH);
+    CHECKMALLOC(election->area_ids);
     election->last=0;
     election->size=LENGTH;
 
@@ -469,6 +470,10 @@ Map electionComputeAreasToTribesMapping (Election election)
     {
         return NULL;
     }
+    if(election->last==0)//if there are no areas in the system
+    {
+        return NULL;
+    }
     Map results=mapCopy(election->areas);
     if(results==NULL)
     {
@@ -514,3 +519,13 @@ Map electionComputeAreasToTribesMapping (Election election)
     }
 return results;
 }
+
+
+
+
+
+
+
+
+
+
