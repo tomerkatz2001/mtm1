@@ -403,7 +403,7 @@ ElectionResult electionAddVote (Election election, int area_id,int tribe_id, int
         return ELECTION_INVALID_VOTES;
     }
     char area_id_string[MAX_SIZE_OF_INT+1];
-    sprintf(area_id_string,"%d",tribe_id);
+    sprintf(area_id_string,"%d",area_id);
     if(!mapContains(election->areas,area_id_string))
     {
         return ELECTION_AREA_NOT_EXIST;
@@ -462,36 +462,37 @@ ElectionResult electionRemoveVote (Election election, int area_id, int tribe_id,
     }
 
     /* Check if both the tribe and the area exist in the database */
-    char area_id_str[MAX_SIZE_OF_INT+1];
-    sprintf(area_id_str,"%d",tribe_id);
-    if(!mapContains(election->tribes,area_id_str))//Check if the tribe exists in the database.
+    char tribe_id_str[MAX_SIZE_OF_INT+1];
+    sprintf(tribe_id_str,"%d",tribe_id);
+    if(!mapContains(election->tribes,tribe_id_str))//Check if the tribe exists in the database.
     {
         return ELECTION_TRIBE_NOT_EXIST;
     }
 
-    char tribe_id_str[MAX_SIZE_OF_INT+1];
-    sprintf(tribe_id_str,"%d",area_id);
-    if(!mapContains(election->areas,tribe_id_str))//Check if the tribe exists in the database.
+    char area_id_str[MAX_SIZE_OF_INT+1];
+    sprintf(area_id_str,"%d",area_id);
+    if(!mapContains(election->areas,area_id_str))//Check if the tribe exists in the database.
     {
         return ELECTION_AREA_NOT_EXIST;
     }
 
-    /* Add the votes */
+    /* remove the votes */
     int area_num;//Find the number of the area in the voting map array using the area ids array.
     for(int i=0;i<election->last;i++){
         if( area_id==election->area_ids[i]){
             area_num=i;
         }
     }
-    char to_str[MAX_SIZE_OF_INT+1];
-    sprintf(to_str,"%d",tribe_id);
-    int votes=atoi(mapGet(election->votes[area_num],to_str));//Retrieve the current number of votes from the voting map.
-    votes+=num_of_votes;//Add the votes.
-    char to_str2[MAX_SIZE_OF_INT+1];
-    sprintf(to_str2,"%d",votes);
-    if(mapPut(election->votes[area_num],to_str,to_str2)==MAP_OUT_OF_MEMORY)//Insert the updated number of votes to the voting map.
+    int votes=atoi(mapGet(election->votes[area_num],tribe_id_str));//Retrieve the current number of votes from the voting map.
+    if(votes<num_of_votes)// incase we are asked to remove more votes than there are
     {
-        electionDestroy(election);
+        num_of_votes=votes;
+    }
+    votes-=num_of_votes;//remove the votes.
+    char new_votes_str[MAX_SIZE_OF_INT+1];
+    sprintf(new_votes_str,"%d",votes);
+    if(mapPut(election->votes[area_num],tribe_id_str,new_votes_str)==MAP_OUT_OF_MEMORY)//Insert the updated number of votes to the voting map.
+    {
         return ELECTION_OUT_OF_MEMORY;
     }
     return ELECTION_SUCCESS;
@@ -504,7 +505,21 @@ Map electionComputeAreasToTribesMapping (Election election)
     }
     if(election->last==0)//if there are no areas in the system
     {
-        return NULL;
+        Map empty=mapCreate();
+        if(empty==NULL)
+        {
+            return NULL;
+        }
+        return empty;
+    }
+    if(!mapGetSize(election->tribes))// if there are no tribes
+    {
+        Map empty_map=mapCreate();
+        if(empty_map==NULL)
+        {
+            return NULL;
+        }
+        return empty_map;
     }
     Map results=mapCopy(election->areas);
     if(results==NULL)
