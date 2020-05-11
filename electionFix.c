@@ -97,11 +97,6 @@ Election electionCreate()
 
     election->votes=(Map*)malloc(sizeof(*election->votes)*LENGTH);
     CHECKMALLOC(election->votes);
-    for(int i=0 ; i< LENGTH ; i++)
-    {
-        election->votes[i]=mapCreate();
-        CHECKMALLOC(election->votes[i]);
-    }
     election->area_ids=malloc(sizeof(*election->area_ids)*LENGTH);
     CHECKMALLOC(election->area_ids);
     election->last=0;
