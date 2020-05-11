@@ -7,12 +7,7 @@
 #define LENGTH 100
 #define MAX_SIZE_OF_INT 10
 
-#define CHECKMALLOC(pointer)\
-\
- if(pointer==NULL)\
- {\
- return NULL;\
- }while(0)
+
 
 struct election_t{
 Map areas;      //A map that contains all of the area IDs(key) and Names(value).
@@ -87,18 +82,33 @@ static MapResult addEmptyScore(Election election, Map area, const char* tribe_id
 Election electionCreate()
 {
     Election election=(Election)malloc(sizeof(Election));
-    CHECKMALLOC(election);
+    if(election==NULL)
+    {
+        return NULL;
+    }
 
     election->areas =mapCreate();
-    CHECKMALLOC(election->areas);
+    if(election->areas==NULL)
+    {
+        return NULL;
+    }
 
     election->tribes=mapCreate();
-    CHECKMALLOC(election->tribes);
+    if(election->tribes==NULL)
+    {
+        return NULL;
+    }
 
     election->votes=(Map*)malloc(sizeof(*election->votes)*LENGTH);
-    CHECKMALLOC(election->votes);
+    if(election->votes==NULL)
+    {
+        return NULL;
+    }
     election->area_ids=malloc(sizeof(*election->area_ids)*LENGTH);
-    CHECKMALLOC(election->area_ids);
+    if(election->area_ids==NULL)
+    {
+        return NULL;
+    }
     election->last=0;
     election->size=LENGTH;
 
@@ -111,13 +121,14 @@ Election electionCreate()
  */
 void electionDestroy(Election election)
 {
-    mapDestroy(election->tribes);
-    mapDestroy(election->areas);
     for (int i=0;i<mapGetSize(election->areas);i++)
     {
         mapDestroy(election->votes[i]);
     }
     free(election->votes);
+    mapDestroy(election->tribes);
+    mapDestroy(election->areas);
+    free(election->area_ids);
 }
 
 ElectionResult electionAddTribe(Election election, int tribe_id, const char* tribe_name)
@@ -200,10 +211,19 @@ ElectionResult electionAddArea(Election election, int area_id, const char* area_
     }
     if(election->last>=election->size)//Check if the Areas array is full, if it is full then allocate more memory.
     {
-        if( realloc(election->area_ids,sizeof(int)*(election->size+LENGTH)) == NULL || realloc(election->votes,sizeof(Map)*(election->size+LENGTH))==NULL){
-            electionDestroy(election);
+        int* temp_area=(int*)realloc(election->area_ids,sizeof(int)*(election->size+LENGTH));
+        if(temp_area==NULL)
+        {
             return ELECTION_OUT_OF_MEMORY;
         }
+        election->area_ids=temp_area;
+        Map* temp_votes=(Map*)realloc(election->votes,sizeof(Map)*(election->size+LENGTH));
+        if(temp_votes==NULL)
+        {
+            return ELECTION_OUT_OF_MEMORY;
+        }
+        election->votes=temp_votes;
+        election->size=election->size+LENGTH;
     }
 
     election->area_ids[election->last]=area_id;//Add the area id to the ids array.
@@ -240,7 +260,10 @@ char* electionGetTribeName (Election election, int tribe_id)
         return NULL;
     }
     char* copy_name_pointer=(char*)malloc(strlen(name_pointer)+1);
-    CHECKMALLOC(copy_name_pointer);
+    if(copy_name_pointer==NULL)
+    {
+        return NULL;
+    }
     strcpy(copy_name_pointer, name_pointer);
     return copy_name_pointer;
 }
@@ -514,13 +537,3 @@ Map electionComputeAreasToTribesMapping (Election election)
     }
 return results;
 }
-
-
-
-
-
-
-
-
-
-
