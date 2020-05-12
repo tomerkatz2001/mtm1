@@ -365,17 +365,24 @@ ElectionResult electionRemoveAreas(Election election, AreaConditionFunction shou
     {
         return ELECTION_NULL_ARGUMENT;
     }
-
+    int amount_of_areas=election->last;
     /* Remove the areas from the election database. */
-    for(int i=0;i<election->last;i++)//Iterate through all of the areas.
+    for(int i=0;i<amount_of_areas;i++)//Iterate through all of the areas.
     {
-        if(should_delete_area(election->area_ids[i]))//Use the parameter function to check for each area if it should be removed
+        if(should_delete_area(election->area_ids[i]))//Use the parameter function to check if area need to be deleted
         {
-            char to_str[MAX_SIZE_OF_INT+1];
-            sprintf(to_str,"%d",election->area_ids[i]);
-            mapRemove(election->areas, to_str);//Remove the area from the areas map.
+            char current_area_id[MAX_SIZE_OF_INT+1];
+            sprintf(current_area_id,"%d",election->area_ids[i]);
+            mapRemove(election->areas, current_area_id);//Remove the area from the areas map.
             mapDestroy(election->votes[i]);//Free the memory allocated for the area voting map
-            for(int j=i;j<election->last-1;j++)//For every area with an index higher then the one removed, in the voting maps array and area ids array, move them to the index below them.
+            election->votes[i]=NULL;
+        }
+    }
+    for(int i=0;i<election->last;i++)
+    {
+        while(election->votes[i]==NULL&&election->last>0)// if this area was deleted
+        {
+            for(int j=i;j<election->last-1;j++)//move all the other areas(that come after) one place forward 
             {
                 election->votes[j]=election->votes[j+1];
                 election->area_ids[j]=election->area_ids[j+1];
@@ -538,7 +545,7 @@ Map electionComputeAreasToTribesMapping (Election election)
         char* winning_tribe_score =mapGet(election->votes[i],winning_tribe_id);// getting its score (string)
         assert(winning_tribe_id!=NULL);
         int highest_score=atoi(winning_tribe_score);//converting the score into an int;
-        for(int j=1;j<mapGetSize(election->votes[i]);j++)//scannig the whole score map of the eara to find biggest score
+        for(int j=1;j<mapGetSize(election->votes[i]);j++)//scannig the whole score map of eara to find biggest score
         {
             char* current_tribe_id=mapGetNext(election->votes[i]);
             assert(current_tribe_id!=NULL);
