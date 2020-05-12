@@ -1,4 +1,5 @@
 
+
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
@@ -10,12 +11,12 @@
 
 
 struct election_t{
-Map areas;      //A map that contains all of the area IDs(key) and Names(value).
-Map tribes;     //A map that contains all of the tribe IDs(key) and Names(value).
-Map* votes;     //An array that contains a voting map for each area, a voting map contains the tribe ids(key) and how many votes they got(value).
-int last;       //A counter that counts the amount of areas
-int* area_ids;  //An array that contains the ids for each area, the array works in a way that in each index there will be the id of the array that his voting map is in the same index in the maps array.
-int size;       //The size allocated for the voting maps array and ids array.
+Map areas;     //A map that contains all of the area IDs(key) and Names(value).
+Map tribes;    //A map that contains all of the tribe IDs(key) and Names(value).
+Map* votes;    //array that contains a voting map for each area,tribe ids(key)votes they got(value)
+int last;      //A counter that counts the amount of areas
+int* area_ids; //array that contains the ids for each area,each index there will be the smae index as in the votes arr
+int size;      //The size allocated for the voting maps array and ids array.
 };
 
 
@@ -44,7 +45,7 @@ static bool checkForbiddenKeys(const char* word)
 
 }
 /**
-* this function adds a new, embty, tribe slots in the voting board.
+* this function adds a new, empty, tribe slots in the voting board.
 * if the area coulm that was given has already tribes slots(it is not new):
 *       the function adds a new score slot for the given tribe id and puts '0' for how much votes.
 *if the given area has no tribes slotes at all(it is a new area):
@@ -120,7 +121,6 @@ Election electionCreate()
     }
     election->last=0;
     election->size=LENGTH;
-
     return election;
 }
 
@@ -144,7 +144,6 @@ void electionDestroy(Election election)
     mapDestroy(election->areas);
     free(election->area_ids);
     free(election);
-    
 }
 
 ElectionResult electionAddTribe(Election election, int tribe_id, const char* tribe_name)
@@ -192,7 +191,6 @@ ElectionResult electionAddTribe(Election election, int tribe_id, const char* tri
  */
 ElectionResult electionAddArea(Election election, int area_id, const char* area_name)
 {
-    
     /* Checking the validity of the parameters. */
     if(election==NULL || area_name==NULL)//Check if any of the params is NULL.
     { 
@@ -204,7 +202,7 @@ ElectionResult electionAddArea(Election election, int area_id, const char* area_
         return ELECTION_INVALID_ID;
     }
 
-    for(int i=0;i<mapGetSize(election->areas);i++)//Iterate through all of the areas to check if the area already exists
+    for(int i=0;i<mapGetSize(election->areas);i++)//Iterate through all the areas to check if the area already exists
     {
         if(area_id == election->area_ids[i])
         {
@@ -248,13 +246,7 @@ ElectionResult electionAddArea(Election election, int area_id, const char* area_
         return ELECTION_OUT_OF_MEMORY;
     }
     
-    char* tribe_id=mapGetFirst(election->tribes);
-    while(tribe_id!=NULL){//Add all of the tribes to the areas voting map with 0 votes.
-        if(mapPut(election->votes[election->last],tribe_id,"0") == MAP_OUT_OF_MEMORY){
-            return ELECTION_OUT_OF_MEMORY;
-        }
-        tribe_id=mapGetNext(election->tribes);
-    }
+    addEmptyScore(election,election->votes[election->last],"no need");
     election->last++;
     return ELECTION_SUCCESS;
      
@@ -375,12 +367,12 @@ ElectionResult electionRemoveAreas(Election election, AreaConditionFunction shou
             sprintf(current_area_id,"%d",election->area_ids[i]);
             mapRemove(election->areas, current_area_id);//Remove the area from the areas map.
             mapDestroy(election->votes[i]);//Free the memory allocated for the area voting map
-            election->votes[i]=NULL;
+            election->area_ids[i]=-1;
         }
     }
     for(int i=0;i<election->last;i++)
     {
-        while(election->votes[i]==NULL&&election->last>0)// if this area was deleted
+        while(election->area_ids[i]==-1&&election->last>=i)// if this area was deleted
         {
             for(int j=i;j<election->last-1;j++)//move all the other areas(that come after) one place forward 
             {
@@ -490,7 +482,7 @@ ElectionResult electionRemoveVote (Election election, int area_id, int tribe_id,
             area_num=i;
         }
     }
-    int votes=atoi(mapGet(election->votes[area_num],tribe_id_str));//Retrieve the current number of votes from the voting map.
+    int votes=atoi(mapGet(election->votes[area_num],tribe_id_str));//Get the current number of votes from the voting map.
     if(votes<num_of_votes)// incase we are asked to remove more votes than there are
     {
         num_of_votes=votes;
@@ -498,7 +490,7 @@ ElectionResult electionRemoveVote (Election election, int area_id, int tribe_id,
     votes-=num_of_votes;//remove the votes.
     char new_votes_str[MAX_SIZE_OF_INT+1];
     sprintf(new_votes_str,"%d",votes);
-    if(mapPut(election->votes[area_num],tribe_id_str,new_votes_str)==MAP_OUT_OF_MEMORY)//Insert the updated number of votes to the voting map.
+    if(mapPut(election->votes[area_num],tribe_id_str,new_votes_str)==MAP_OUT_OF_MEMORY)//update number of votes
     {
         return ELECTION_OUT_OF_MEMORY;
     }
@@ -573,3 +565,13 @@ Map electionComputeAreasToTribesMapping (Election election)
     }
 return results;
 }
+
+
+
+
+
+
+
+
+
+
